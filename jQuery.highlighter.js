@@ -175,10 +175,19 @@
                         $(".dummy").remove();
                     }
 
-                    $(settings.selector).css("top", position.top + topOffset + "px");
+                    if (position.top + topOffset + 100 > $(window).height()) {
+                        $(settings.selector).css("top", position.top - $(settings.selector).height() - 100 + "px").addClass("position-top");
+                    }
+                    else {
+                        $(settings.selector).css("top", position.top + topOffset + "px").removeClass("position-top");
+                    }
+
                     $(settings.selector).css("left", position.left + leftOffset + "px");
-                    $(settings.selector).show(300, function() {
-                        settings.complete(selText);
+                    $(settings.selector).show(300, function () {
+                        settings.complete({
+                            selection: selText,
+                            $element: $(window.getSelection ? window.getSelection().anchorNode.parentElement : "")
+                        });
                     });
                 }
                 $(settings.selector).hide();
