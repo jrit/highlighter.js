@@ -52,29 +52,6 @@
         }
     };
 
-    /*
-     * Attempt to get the previous sibling
-     * of a container in the event of a triple
-     * click.
-     *
-     * Adapted from http://stackoverflow.com/a/574922
-     */
-    function get_previoussibling(n) {
-        var y = n, x;
-        try {
-            x = n.previousSibling;
-            while (x && x.nodeType != 1) {
-                y = x;
-                x = x.previousSibling;
-            }
-        } catch (err) {
-            console.log(err);
-            topOffset = -15;
-            return y;
-        }
-        return x ? x : y;
-    }
-
     var methods = {
         init: function (options) {
 
@@ -89,6 +66,14 @@
             var isDown = false;
 
         var selText;
+
+        var show = function () {
+            $(settings.selector).addClass("active");
+        };
+
+        var hide = function () {
+            $(settings.selector).removeClass("active").css("left", "-9999px");
+        };
 
             return this.each(function () {
                 /*
@@ -110,54 +95,19 @@
                         sel = window.getSelection();
                         selText = sel.toString();
 
-                        if ($.trim(selText) === '' || selText.split(' ').length < settings.minWords) return;
+                        if ($.trim(selText) === '' || selText.split(' ').length < settings.minWords) {
+                            return;
+                        }
 
                         if (sel.getRangeAt && sel.rangeCount) {
                             range = window.getSelection().getRangeAt(0);
 
-                            expandedSelRange = range.cloneRange();
-                            expandedSelRange.collapse(false);
+                            var bounding = range.getBoundingClientRect();
 
-                            // Range.createContextualFragment() would be useful here but is
-                            // non-standard and not supported in all browsers (IE9, for one)
-                            var el = document.createElement("div");
-                            el.innerHTML = html;
-                            var dummy = document.createElement("span");
-
-                            if (range.startOffset === 0 && range.endOffset === 0) {
-
-                                var cont = expandedSelRange.startContainer;
-                                var prev = get_previoussibling(cont);
-                                try {
-                                    expandedSelRange.selectNode(prev.lastChild);
-                                } catch (err) {
-                                    leftOffset = 40;
-                                    topOffset = -15;
-                                    expandedSelRange.selectNode(prev);
-                                }
-                                // console.log(expandedSelRange);
-                                expandedSelRange.collapse(false);
-                            } else if(range.endOffset === 0 ) {
-                                topOffset = -25;
-                                leftOffset = 40;
-                            }
-
+                            position = { top: bounding.bottom, left: (bounding.left + bounding.right) / 2 };
 
                             if (numClicks !== clicks) return;
-                            $(settings.selector).hide();
-                            if (!isIE && $.trim(selText) === $.trim(expandedSelRange.startContainer.innerText)) {
-                                expandedSelRange.startContainer.innerHTML += "<span class='dummy'>&nbsp;</span>";
-                                position = $(".dummy").offset();
-                                $(".dummy").remove();
-                            } else if (!isIE && $.trim(selText) === $.trim(expandedSelRange.endContainer.innerText)) {
-                                expandedSelRange.endContainer.innerHTML += "<span class='dummy'>&nbsp;</span>";
-                                position = $(".dummy").offset();
-                                $(".dummy").remove();
-                            } else {
-                                expandedSelRange.insertNode(dummy);
-                                position = $(dummy).offset();
-                                dummy.parentNode.removeChild(dummy);
-                            }
+                            hide();
                         }
                     } else if (document.selection && document.selection.createRange) {
                         range = document.selection.createRange();
@@ -183,14 +133,13 @@
                     }
 
                     $(settings.selector).css("left", position.left + leftOffset + "px");
-                    $(settings.selector).show(300, function () {
-                        settings.complete({
-                            selection: selText,
-                            $element: $(window.getSelection ? window.getSelection().anchorNode.parentElement : "")
-                        });
+                    show();
+                    settings.complete({
+                        selection: selText,
+                        $element: $(window.getSelection ? window.getSelection().anchorNode.parentElement : "")
                     });
                 }
-                $(settings.selector).hide();
+                hide();
                 $(settings.selector).css("position", "absolute");
                 $(document).bind('mouseup.highlighter', function (e) {
                     if (isDown) {
@@ -223,7 +172,7 @@
                     }, 300);
                 });
                 $(this).bind('mousedown.highlighter', function (e) {
-                    $(settings.selector).hide();
+                    hide();
                     isDown = true;
                 });
 
