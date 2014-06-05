@@ -15,7 +15,7 @@
  * for more details.
  */
 
-   (function ($) {
+(function ($) {
     /*
      * Code for triple click from
      * http://css-tricks.com/snippets/jquery/triple-click-event/
@@ -58,24 +58,33 @@
             var settings = $.extend({
                 'selector': '.highlighter-container',
                 'minWords': 0,
-                'complete': function() {}
+                'complete': function () { }
             }, options);
             var numClicks = 0;
-            var topOffset = 0;
-            var leftOffset = 0;
             var isDown = false;
+            var $target = $();
 
-        var selText;
+            var selText;
 
-        var show = function () {
-            $(settings.selector).addClass("active");
-        };
+            var show = function () {
+                $(settings.selector).addClass("active");
+            };
 
-        var hide = function () {
-            $(settings.selector).removeClass("active").css("left", "-9999px");
-        };
+            var hide = function () {
+                $(settings.selector).removeClass("active").css("left", "-9999px");
+            };
 
             return this.each(function () {
+
+                var move = function (position, scrollTop) {
+                    if (position.bottom - scrollTop + 100 > $(window).height()) {
+                        $(settings.selector).css("top", position.top - $(settings.selector).height() - 40 + "px").addClass("position-top");
+                    }
+                    else {
+                        $(settings.selector).css("top", position.bottom + "px").removeClass("position-top");
+                    }
+                };
+
                 /*
                  * Insert an html <span> after a user selects text.
                  * We then use the X-Y coordinates of that span
@@ -85,12 +94,12 @@
                  */
                 function insertSpanAfterSelection(clicks) {
                     var html = "<span class='dummy'><span>";
-                    topOffset = 0;
-                    leftOffset = 0;
                     if (numClicks !== clicks) return;
                     var isIE = (navigator.appName === "Microsoft Internet Explorer");
                     var sel, range, expandedSelRange, node;
                     var position;
+                    var scrollTop = $(window).scrollTop();
+
                     if (window.getSelection) {
                         sel = window.getSelection();
                         selText = sel.toString();
@@ -103,8 +112,13 @@
                             range = window.getSelection().getRangeAt(0);
 
                             var bounding = range.getBoundingClientRect();
+                            var offset = $target.offsetParent().offset();
 
-                            position = { top: bounding.bottom, left: (bounding.left + bounding.right) / 2 };
+                            position = {
+                                top: bounding.top + scrollTop,
+                                bottom: bounding.bottom + scrollTop,
+                                left: (bounding.left + bounding.right) / 2
+                            };
 
                             if (numClicks !== clicks) return;
                             hide();
@@ -125,14 +139,9 @@
                         $(".dummy").remove();
                     }
 
-                    if (position.top + topOffset + 100 > $(window).height()) {
-                        $(settings.selector).css("top", position.top - $(settings.selector).height() - 100 + "px").addClass("position-top");
-                    }
-                    else {
-                        $(settings.selector).css("top", position.top + topOffset + "px").removeClass("position-top");
-                    }
+                    move(position, scrollTop);
 
-                    $(settings.selector).css("left", position.left + leftOffset + "px");
+                    $(settings.selector).css("left", position.left + "px");
                     show();
                     settings.complete({
                         selection: selText,
@@ -174,6 +183,7 @@
                 $(this).bind('mousedown.highlighter', function (e) {
                     hide();
                     isDown = true;
+                    $target = $(e.target);
                 });
 
             });
